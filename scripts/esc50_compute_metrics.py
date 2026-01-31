@@ -14,7 +14,7 @@ We record *building blocks* (not a single annoyance score):
 - sharpness (DIN)
 - roughness (Daniel & Weber)
 - fluctuation strength (proxy from time-varying loudness modulation)
-- tonality (MOSQITO tonality metric; output varies by function)
+- tonality building block: prominence ratio (ECMA 418-1)
 
 Notes
 -----
@@ -38,7 +38,7 @@ from tqdm import tqdm
 from mosqito.sq_metrics import loudness_zwst, sharpness_din_st, roughness_dw, loudness_zwtv
 
 # tonality API (ECMA 418-1)
-from mosqito.sq_metrics.tonality import pr_ecma_st, tnr_ecma_st
+from mosqito.sq_metrics.tonality import pr_ecma_st
 
 
 def load_wav(path: Path) -> tuple[int, np.ndarray]:
@@ -75,18 +75,16 @@ def fluctuation_strength_proxy(x: np.ndarray, sr: int) -> float:
 def tonality_scalars(x: np.ndarray, sr: int) -> dict[str, float]:
     """Compute tonality-related scalars.
 
-    MOSQITO exposes ECMA 418-1 tonality metrics as:
-    - prominence ratio (PR)
-    - tone-to-noise ratio (TNR)
+    We keep a single tonality building block here:
+    - prominence ratio (PR, ECMA 418-1)
 
-    We compute stationary values and reduce to floats.
+    (TNR is closely related and can be added back if needed.)
 
     Returns
     -------
-    dict with keys: pr_ecma_st, tnr_ecma_st
+    dict with key: pr_ecma_st
     """
     pr = pr_ecma_st(x, sr)
-    tnr = tnr_ecma_st(x, sr)
 
     def to_float(v):
         """Convert MOSQITO outputs to a scalar.
@@ -104,7 +102,6 @@ def tonality_scalars(x: np.ndarray, sr: int) -> dict[str, float]:
 
     return {
         "pr_ecma_st": to_float(pr),
-        "tnr_ecma_st": to_float(tnr),
     }
 
 
