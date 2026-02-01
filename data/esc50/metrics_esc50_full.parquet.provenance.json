@@ -1,0 +1,6 @@
+{
+  "dataset": "ESC-50",
+  "esc_root": "/root/clawd/_datasets/esc-50/ESC-50-master",
+  "mosqito": "1.2.1",
+  "note": "Metrics computed on uncalibrated waveforms; absolute values depend on SPL calibration."
+}
