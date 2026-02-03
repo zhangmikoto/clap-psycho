@@ -103,9 +103,18 @@ def compute_row(wav_path: Path) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--us8k-root", required=True, help="Path to UrbanSound8K root")
-    ap.add_argument("--out", required=True, help="Output path (.parquet or .csv)")
+    ap.add_argument(
+        "--out",
+        required=True,
+        help=(
+            "Output path (.parquet/.csv) OR an output directory (recommended) for chunked writes. "
+            "If a directory is provided, this script will write multiple part-*.parquet files and can resume."
+        ),
+    )
     ap.add_argument("--limit", type=int, default=None, help="Optional limit for debugging")
     ap.add_argument("--fail-fast", action="store_true", help="Stop on first failure")
+    ap.add_argument("--chunk", type=int, default=100, help="Rows per parquet part when using directory output")
+    ap.add_argument("--resume", action="store_true", help="Resume by skipping ids already present in output")
     args = ap.parse_args()
 
     root = Path(args.us8k_root)
@@ -115,9 +124,53 @@ def main() -> None:
     if args.limit is not None:
         df_meta = df_meta.head(int(args.limit)).copy()
 
-    rows = []
-    for _, r in tqdm(df_meta.iterrows(), total=len(df_meta), desc="UrbanSound8K metrics"):
+    out_target = Path(args.out)
+    out_is_dir = out_target.suffix == ""  # no extension => treat as directory
+    if out_is_dir:
+        out_dir = out_target
+        out_dir.mkdir(parents=True, exist_ok=True)
+        parts_dir = out_dir / "parts"
+        parts_dir.mkdir(parents=True, exist_ok=True)
+        done_ids_path = out_dir / "done_ids.txt"
+        done_ids: set[str] = set()
+        if args.resume and done_ids_path.exists():
+            done_ids = set(done_ids_path.read_text(encoding="utf-8").splitlines())
+    else:
+        out_dir = out_target.parent
+        out_dir.mkdir(parents=True, exist_ok=True)
+        parts_dir = None
+        done_ids_path = None
+        done_ids = set()
+
+    provenance = {
+        "dataset": "UrbanSound8K",
+        "root": str(root),
+        "mosqito": "1.2.1",
+        "note": "Metrics computed on uncalibrated waveforms; absolute values depend on SPL calibration.",
+    }
+
+    buf: list[dict] = []
+    wrote = 0
+    part_idx = 0
+
+    def flush_chunk() -> None:
+        nonlocal buf, wrote, part_idx
+        if not buf:
+            return
+        df_chunk = pd.DataFrame(buf)
+        if out_is_dir:
+            assert parts_dir is not None
+            part_path = parts_dir / f"part-{part_idx:05d}.parquet"
+            df_chunk.to_parquet(part_path, index=False)
+            part_idx += 1
+        buf = []
+
+    it = df_meta.iterrows()
+    for _, r in tqdm(it, total=len(df_meta), desc="UrbanSound8K metrics"):
         fn = str(r["slice_file_name"])
+        if out_is_dir and args.resume and fn in done_ids:
+            continue
+
         fold = int(r["fold"])
         wav_path = root / "audio" / f"fold{fold}" / fn
 
@@ -142,31 +195,33 @@ def main() -> None:
             if args.fail_fast:
                 raise
 
-        rows.append(base)
+        buf.append(base)
+        wrote += 1
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+        if out_is_dir:
+            assert done_ids_path is not None
+            with done_ids_path.open("a", encoding="utf-8") as f:
+                f.write(fn + "\n")
 
-    df_out = pd.DataFrame(rows)
+        if out_is_dir and len(buf) >= int(args.chunk):
+            flush_chunk()
 
-    provenance = {
-        "dataset": "UrbanSound8K",
-        "root": str(root),
-        "mosqito": "1.2.1",
-        "note": "Metrics computed on uncalibrated waveforms; absolute values depend on SPL calibration.",
-    }
-
-    if out_path.suffix.lower() == ".parquet":
-        df_out.to_parquet(out_path, index=False)
-    elif out_path.suffix.lower() == ".csv":
-        df_out.to_csv(out_path, index=False)
+    if out_is_dir:
+        flush_chunk()
+        prov_path = out_dir / "provenance.json"
+        prov_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
+        print(f"Wrote ~{wrote} rows into {parts_dir} (chunked)")
     else:
-        raise ValueError("--out must end with .parquet or .csv")
-
-    prov_path = out_path.with_suffix(out_path.suffix + ".provenance.json")
-    prov_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
-
-    print(f"Wrote {len(df_out)} rows to {out_path}")
+        df_out = pd.DataFrame(buf)
+        if out_target.suffix.lower() == ".parquet":
+            df_out.to_parquet(out_target, index=False)
+        elif out_target.suffix.lower() == ".csv":
+            df_out.to_csv(out_target, index=False)
+        else:
+            raise ValueError("--out must end with .parquet or .csv")
+        prov_path = out_target.with_suffix(out_target.suffix + ".provenance.json")
+        prov_path.write_text(json.dumps(provenance, indent=2), encoding="utf-8")
+        print(f"Wrote {len(df_out)} rows to {out_target}")
 
 
 if __name__ == "__main__":
