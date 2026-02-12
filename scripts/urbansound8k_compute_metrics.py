@@ -115,6 +115,15 @@ def main() -> None:
     ap.add_argument("--fail-fast", action="store_true", help="Stop on first failure")
     ap.add_argument("--chunk", type=int, default=100, help="Rows per parquet part when using directory output")
     ap.add_argument("--resume", action="store_true", help="Resume by skipping ids already present in output")
+    ap.add_argument(
+        "--max-new",
+        type=int,
+        default=None,
+        help=(
+            "Process at most this many *new* files (after resume-skips) and then exit cleanly. "
+            "Useful to avoid long runs getting SIGKILL'd (e.g., OOM) by restarting in batches."
+        ),
+    )
     args = ap.parse_args()
 
     root = Path(args.us8k_root)
@@ -152,6 +161,7 @@ def main() -> None:
     buf: list[dict] = []
     wrote = 0
     part_idx = 0
+    new_processed = 0
 
     def flush_chunk() -> None:
         nonlocal buf, wrote, part_idx
@@ -170,6 +180,9 @@ def main() -> None:
         fn = str(r["slice_file_name"])
         if out_is_dir and args.resume and fn in done_ids:
             continue
+
+        if args.max_new is not None and new_processed >= int(args.max_new):
+            break
 
         fold = int(r["fold"])
         wav_path = root / "audio" / f"fold{fold}" / fn
@@ -197,6 +210,7 @@ def main() -> None:
 
         buf.append(base)
         wrote += 1
+        new_processed += 1
 
         if out_is_dir:
             assert done_ids_path is not None
