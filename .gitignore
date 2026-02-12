@@ -1,0 +1,7 @@
+_datasets/
+_datasets/**
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
