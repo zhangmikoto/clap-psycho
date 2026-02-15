@@ -1,5 +1,7 @@
 _datasets/
 _datasets/**
+.venv*/
+__pycache__/
 *.zip
 *.tar
 *.tar.gz
