@@ -88,8 +88,12 @@ Per row (one audio file):
   - `loudness` (float; Zwicker stationary)
   - `sharpness` (float; DIN)
   - `roughness` (float; Daniel & Weber; max over time)
-  - `fluctuation_strength_proxy` (float; proxy)
+  - `fluctuation_strength_proxy` (float; proxy via mosqito loudness_zwtv; very expensive; often skipped)
   - `pr_ecma_st` (float; prominence ratio / tonality building block)
+- Cheap temporal-modulation substitutes (computed from Hilbert envelope, 0.5–20 Hz bandpass):
+  - `fluctuation_evr` (float; envelope variance ratio)
+  - `fluctuation_ami` (float; amplitude modulation index)
+  - `fluctuation_rms_mod` (float; RMS of modulation-band envelope)
 - Error handling:
   - `error` (string; empty if OK)
 
