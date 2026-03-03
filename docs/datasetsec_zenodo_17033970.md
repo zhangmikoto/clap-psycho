@@ -42,9 +42,25 @@ Compute psychoacoustic **building-block** metrics per clip (features suitable fo
 - MOSQITO can emit warnings about resampling to 48 kHz depending on the metric implementation.
 - **Calibration note:** MOSQITO expects signals in Pa for absolute SPL. These waveforms are uncalibrated; absolute values are not physically meaningful, but relative values can still be useful for learning.
 
+### Temporal modulation metrics (fluctuation features)
+The pipeline provides two approaches for temporal modulation:
+
+1. **Standard fluctuation strength proxy** (`fluctuation_strength_proxy`):
+   - Computed from MOSQITO's time-varying loudness (expensive)
+   - Bandpassed in 0.5-20 Hz range
+   - Available when `--skip-fluctuation` is NOT used
+
+2. **Envelope Variance Ratio (EVR)** - cheap substitute:
+   - Computed directly from waveform envelope (fast, no MOSQITO dependency)
+   - Uses scipy.signal.hilbert for envelope extraction
+   - Bandpassed envelope variance ratio in 0.5-20 Hz range
+   - **Always computed** as a substitute when `--skip-fluctuation` is used
+   - Also includes optional: `fluctuation_ami` (Amplitude Modulation Index) and `fluctuation_rms_mod` (RMS Modulation)
+
 ### Implementation
 Script:
 - `scripts/zenodo_17033970_compute_metrics.py`
+- `scripts/zenodo_17033970_compute_metrics_v2.py` (optimized with EVR)
 
 Recommended durable output layout:
 - Output dir: `/root/clawd/_datasets/zenodo_17033970/metrics/`
@@ -88,12 +104,11 @@ Per row (one audio file):
   - `loudness` (float; Zwicker stationary)
   - `sharpness` (float; DIN)
   - `roughness` (float; Daniel & Weber; max over time)
-  - `fluctuation_strength_proxy` (float; proxy via mosqito loudness_zwtv; very expensive; often skipped)
+  - `fluctuation_strength_proxy` (float; proxy via mosqito loudness_zwtv; expensive; skipped with `--skip-fluctuation`)
+  - `fluctuation_evr` (float; envelope variance ratio - cheap substitute using Hilbert envelope, 0.5–20 Hz bandpass)
+  - `fluctuation_ami` (float; amplitude modulation index - optional substitute)
+  - `fluctuation_rms_mod` (float; RMS of modulation-band envelope - optional substitute)
   - `pr_ecma_st` (float; prominence ratio / tonality building block)
-- Cheap temporal-modulation substitutes (computed from Hilbert envelope, 0.5–20 Hz bandpass):
-  - `fluctuation_evr` (float; envelope variance ratio)
-  - `fluctuation_ami` (float; amplitude modulation index)
-  - `fluctuation_rms_mod` (float; RMS of modulation-band envelope)
 - Error handling:
   - `error` (string; empty if OK)
 

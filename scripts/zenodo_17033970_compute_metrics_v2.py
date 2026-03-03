@@ -519,7 +519,9 @@ Examples:
     print(f"  Loudness (Zwicker): ENABLED")
     print(f"  Sharpness (DIN): ENABLED")
     print(f"  Roughness: {'SKIPPED' if args.skip_roughness else 'ENABLED'}")
-    print(f"  Fluctuation strength: {'SKIPPED' if args.skip_fluctuation else 'ENABLED'}")
+    print(f"  Fluctuation strength (MOSQITO): {'SKIPPED' if args.skip_fluctuation else 'ENABLED'}")
+    print(f"  Fluctuation EVR (Hilbert envelope): ENABLED (cheap substitute)")
+    print(f"  Fluctuation AMI/RMS_mod: ENABLED (optional)")
     print(f"  Tonality (PR ECMA): {'SKIPPED' if args.skip_tonality else 'ENABLED'}")
     print(f"  Max duration: {args.max_duration_seconds or 'full file'} seconds")
     print("=" * 70)
@@ -658,6 +660,9 @@ Examples:
                             "sharpness": float("nan"),
                             "roughness": float("nan") if not args.skip_roughness else None,
                             "fluctuation_strength_proxy": float("nan") if not args.skip_fluctuation else None,
+                            "fluctuation_evr": float("nan"),
+                            "fluctuation_ami": float("nan"),
+                            "fluctuation_rms_mod": float("nan"),
                             "pr_ecma_st": float("nan") if not args.skip_tonality else None,
                             "error": repr(e),
                             "compute_time_s": 0.0,
@@ -718,6 +723,9 @@ Examples:
                                 "sharpness": float("nan"),
                                 "roughness": float("nan") if not args.skip_roughness else None,
                                 "fluctuation_strength_proxy": float("nan") if not args.skip_fluctuation else None,
+                                "fluctuation_evr": float("nan"),
+                                "fluctuation_ami": float("nan"),
+                                "fluctuation_rms_mod": float("nan"),
                                 "pr_ecma_st": float("nan") if not args.skip_tonality else None,
                                 "error": repr(e),
                                 "compute_time_s": 0.0,
