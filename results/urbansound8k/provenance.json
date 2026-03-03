@@ -1,0 +1,6 @@
+{
+  "dataset": "UrbanSound8K",
+  "root": "/root/clawd/_datasets/urbansound8k/UrbanSound8K",
+  "mosqito": "1.2.1",
+  "note": "Metrics computed on uncalibrated waveforms; absolute values depend on SPL calibration."
+}

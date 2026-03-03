@@ -1,0 +1,19 @@
+{
+  "dataset": "Clotho",
+  "zenodo_record": "https://zenodo.org/record/3490684",
+  "clotho_root": "/root/clawd/_datasets/clotho_3490684",
+  "mosqito": "1.2.1",
+  "note": "Metrics computed on uncalibrated waveforms; absolute values depend on SPL calibration.",
+  "script_version": "v2-optimized",
+  "metrics_config": {
+    "skip_roughness": false,
+    "skip_fluctuation": true,
+    "skip_tonality": false,
+    "max_duration_seconds": null
+  },
+  "performance_config": {
+    "n_jobs": 3,
+    "batch_size": 20,
+    "chunk_size": 100
+  }
+}
