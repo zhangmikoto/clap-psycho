@@ -598,7 +598,17 @@ Examples:
     # Process in batches
     buf: list[dict] = []
     wrote = 0
+
+    # IMPORTANT: when resuming in directory-output mode, do NOT overwrite existing parts.
+    # Continue part numbering from what already exists.
     part_idx = 0
+    if out_is_dir:
+        assert parts_dir is not None
+        existing = sorted(parts_dir.glob("part-*.parquet"))
+        if existing:
+            part_idx = len(existing)
+            print(f"Resuming parts: found {part_idx} existing part parquet files; will continue numbering.")
+
     total_start_time = time.time()
 
     def flush_chunk() -> None:
